@@ -24,6 +24,7 @@
 #include "eval_intern.h"
 #include "internal.h"
 #include "internal/bits.h"
+#include "internal/box.h"
 #include "internal/class.h"
 #include "internal/gc.h"
 #include "internal/hash.h"
@@ -842,7 +843,7 @@ call_trace_func(rb_event_flag_t event, VALUE proc, VALUE self, ID id, VALUE klas
     get_path_and_lineno(ec, ec->cfp, event, &filename, &line);
 
     if (!klass) {
-        rb_ec_frame_method_id_and_class(ec, &id, 0, &klass);
+        rb_ec_frame_method_id_and_class(ec, &id, 0, &klass, NULL);
     }
 
     if (klass) {
@@ -985,6 +986,12 @@ rb_tracearg_event(rb_trace_arg_t *trace_arg)
     return ID2SYM(get_event_id(trace_arg->event));
 }
 
+VALUE
+rb_tracearg_bound_box(rb_trace_arg_t *trace_arg)
+{
+    return trace_arg->bound_box ? rb_get_box_object(trace_arg->bound_box) : Qnil;
+}
+
 static void
 fill_path_and_lineno(rb_trace_arg_t *trace_arg)
 {
@@ -1011,7 +1018,7 @@ fill_id_and_klass(rb_trace_arg_t *trace_arg)
 {
     if (!trace_arg->klass_solved) {
         if (!trace_arg->klass) {
-            rb_vm_control_frame_id_and_class(trace_arg->cfp, &trace_arg->id, &trace_arg->called_id, &trace_arg->klass);
+            rb_vm_control_frame_id_and_class(trace_arg->cfp, &trace_arg->id, &trace_arg->called_id, &trace_arg->klass, &trace_arg->bound_box);
         }
 
         if (trace_arg->klass) {
@@ -1288,6 +1295,12 @@ static VALUE
 tracepoint_attr_instruction_sequence(rb_execution_context_t *ec, VALUE tpval)
 {
     return rb_tracearg_instruction_sequence(get_trace_arg());
+}
+
+static VALUE
+tracepoint_attr_bound_box(rb_execution_context_t *ec, VALUE tpval)
+{
+    return rb_tracearg_bound_box(get_trace_arg());
 }
 
 static void

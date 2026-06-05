@@ -417,4 +417,10 @@ class TracePoint
   def instruction_sequence
     Primitive.tracepoint_attr_instruction_sequence
   end
+
+  # Returns the bound box of the event, which is a box object that defined
+  # the related method.
+  def bound_box
+    Primitive.tracepoint_attr_bound_box
+  end
 end
