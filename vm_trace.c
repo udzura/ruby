@@ -24,6 +24,7 @@
 #include "eval_intern.h"
 #include "internal.h"
 #include "internal/bits.h"
+#include "internal/box.h"
 #include "internal/class.h"
 #include "internal/gc.h"
 #include "internal/hash.h"
@@ -1094,6 +1095,16 @@ rb_tracearg_defined_class(rb_trace_arg_t *trace_arg)
 }
 
 VALUE
+rb_tracearg_bound_box(rb_trace_arg_t *trace_arg)
+{
+    fill_id_and_klass(trace_arg);
+    if (trace_arg->bound_box) {
+        return rb_get_box_object(trace_arg->bound_box);
+    }
+    return Qnil;
+}
+
+VALUE
 rb_tracearg_binding(rb_trace_arg_t *trace_arg)
 {
     rb_control_frame_t *cfp;
@@ -1236,6 +1247,12 @@ static VALUE
 tracepoint_attr_defined_class(rb_execution_context_t *ec, VALUE tpval)
 {
     return rb_tracearg_defined_class(get_trace_arg());
+}
+
+static VALUE
+tracepoint_attr_bound_box(rb_execution_context_t *ec, VALUE tpval)
+{
+    return rb_tracearg_bound_box(get_trace_arg());
 }
 
 static VALUE

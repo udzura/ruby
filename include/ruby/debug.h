@@ -565,6 +565,16 @@ VALUE rb_tracearg_defined_class(rb_trace_arg_t *trace_arg);
 
 RBIMPL_ATTR_NONNULL((1))
 /**
+ * Returns the box object in which the method of the event was defined.
+ *
+ * @param[in]  trace_arg  A trace instance.
+ * @retval     RUBY_Qnil  There is no bound box.
+ * @retval     otherwise  Its bound box object.
+ */
+VALUE rb_tracearg_bound_box(rb_trace_arg_t *trace_arg);
+
+RBIMPL_ATTR_NONNULL((1))
+/**
  * Creates a binding object of the point where the trace is at.
  *
  * @param[in]  trace_arg  A trace instance.

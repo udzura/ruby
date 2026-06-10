@@ -376,6 +376,11 @@ class TracePoint
     Primitive.tracepoint_attr_defined_class
   end
 
+  # Returns the box object in which the method of the event was defined.
+  def bound_box
+    Primitive.tracepoint_attr_bound_box
+  end
+
   # Returns the generated binding object from the event.
   #
   # Note that for +:c_call+ and +:c_return+ events, the method returns
