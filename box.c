@@ -378,7 +378,7 @@ rb_get_box_t(VALUE box)
 }
 
 VALUE
-rb_get_box_object(rb_box_t *box)
+rb_get_box_object(const rb_box_t *box)
 {
     VM_ASSERT(box && box->box_object);
     return box->box_object;
