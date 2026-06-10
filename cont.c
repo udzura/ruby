@@ -2656,7 +2656,7 @@ rb_fiber_start(rb_fiber_t *fiber)
         th->ec->root_lep = rb_vm_proc_local_ep(fiber->first_proc);
         th->ec->root_svar = Qfalse;
 
-        EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_FIBER_SWITCH, th->self, 0, 0, 0, Qnil);
+        EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_FIBER_SWITCH, th->self, 0, 0, 0, 0, Qnil);
         cont->value = rb_vm_invoke_proc(th->ec, proc, argc, argv, cont->kw_splat, VM_BLOCK_HANDLER_NONE);
     }
     EC_POP_TAG();
@@ -2904,7 +2904,7 @@ fiber_switch(rb_fiber_t *fiber, int argc, const VALUE *argv, int kw_splat, rb_fi
 
     RUBY_VM_CHECK_INTS(th->ec);
 
-    EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_FIBER_SWITCH, th->self, 0, 0, 0, Qnil);
+    EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_FIBER_SWITCH, th->self, 0, 0, 0, 0, Qnil);
 
     current_fiber = th->ec->fiber_ptr;
     value = current_fiber->cont.value;

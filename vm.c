@@ -759,7 +759,7 @@ rb_dtrace_setup(rb_execution_context_t *ec, VALUE klass, ID id,
     enum ruby_value_type type;
     if (!klass) {
         if (!ec) ec = GET_EC();
-        if (!rb_ec_frame_method_id_and_class(ec, &id, 0, &klass) || !klass)
+        if (!rb_ec_frame_method_id_and_class(ec, &id, 0, &klass, NULL) || !klass)
             return FALSE;
     }
     if (RB_TYPE_P(klass, T_ICLASS)) {
@@ -976,7 +976,7 @@ rb_vm_pop_cfunc_frame(void)
     rb_control_frame_t *cfp = ec->cfp;
     const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
 
-    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, cfp->self, me->def->original_id, me->called_id, me->owner, Qnil);
+    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, cfp->self, me->def->original_id, me->called_id, me->owner, me->def->box, Qnil);
     RUBY_DTRACE_CMETHOD_RETURN_HOOK(ec, me->owner, me->def->original_id);
     vm_pop_frame(ec, cfp, cfp->ep);
 }
@@ -2589,11 +2589,11 @@ hook_before_rewind(rb_execution_context_t *ec, bool cfp_returning_with_value, in
         switch (VM_FRAME_TYPE(ec->cfp)) {
           case VM_FRAME_MAGIC_METHOD:
             RUBY_DTRACE_METHOD_RETURN_HOOK(ec, 0, 0);
-            EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_RETURN, ec->cfp->self, 0, 0, 0, frame_return_value(err));
+            EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_RETURN, ec->cfp->self, 0, 0, 0, 0, frame_return_value(err));
 
             if (UNLIKELY(local_hooks && local_hooks->events & RUBY_EVENT_RETURN)) {
                 rb_exec_event_hook_orig(ec, local_hooks, RUBY_EVENT_RETURN,
-                                        ec->cfp->self, 0, 0, 0, frame_return_value(err), TRUE);
+                                        ec->cfp->self, 0, 0, 0, 0, frame_return_value(err), TRUE);
             }
 
             THROW_DATA_CONSUMED_SET(err);
@@ -2607,10 +2607,10 @@ hook_before_rewind(rb_execution_context_t *ec, bool cfp_returning_with_value, in
                 }
 
 
-                EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_B_RETURN, ec->cfp->self, 0, 0, 0, bmethod_return_value);
+                EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_B_RETURN, ec->cfp->self, 0, 0, 0, 0, bmethod_return_value);
                 if (UNLIKELY(local_hooks && local_hooks->events & RUBY_EVENT_B_RETURN)) {
                     rb_exec_event_hook_orig(ec, local_hooks, RUBY_EVENT_B_RETURN,
-                                            ec->cfp->self, 0, 0, 0, bmethod_return_value, TRUE);
+                                            ec->cfp->self, 0, 0, 0, 0, bmethod_return_value, TRUE);
                 }
 
                 const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(ec->cfp);
@@ -2619,6 +2619,7 @@ hook_before_rewind(rb_execution_context_t *ec, bool cfp_returning_with_value, in
                                               rb_vm_frame_method_entry(ec->cfp)->def->original_id,
                                               rb_vm_frame_method_entry(ec->cfp)->called_id,
                                               rb_vm_frame_method_entry(ec->cfp)->owner,
+                                              me->def->box,
                                               bmethod_return_value);
 
                 VM_ASSERT(me->def->type == VM_METHOD_TYPE_BMETHOD);
@@ -2630,6 +2631,7 @@ hook_before_rewind(rb_execution_context_t *ec, bool cfp_returning_with_value, in
                                                 rb_vm_frame_method_entry(ec->cfp)->def->original_id,
                                                 rb_vm_frame_method_entry(ec->cfp)->called_id,
                                                 rb_vm_frame_method_entry(ec->cfp)->owner,
+                                                me->def->box,
                                                 bmethod_return_value, TRUE);
                     }
                 }
@@ -2637,16 +2639,16 @@ hook_before_rewind(rb_execution_context_t *ec, bool cfp_returning_with_value, in
                 THROW_DATA_CONSUMED_SET(err);
             }
             else {
-                EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_B_RETURN, ec->cfp->self, 0, 0, 0, frame_return_value(err));
+                EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_B_RETURN, ec->cfp->self, 0, 0, 0, 0, frame_return_value(err));
                 if (UNLIKELY(local_hooks && local_hooks->events & RUBY_EVENT_B_RETURN)) {
                     rb_exec_event_hook_orig(ec, local_hooks, RUBY_EVENT_B_RETURN,
-                                            ec->cfp->self, 0, 0, 0, frame_return_value(err), TRUE);
+                                            ec->cfp->self, 0, 0, 0, 0, frame_return_value(err), TRUE);
                 }
                 THROW_DATA_CONSUMED_SET(err);
             }
             break;
           case VM_FRAME_MAGIC_CLASS:
-            EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_END, ec->cfp->self, 0, 0, 0, Qnil);
+            EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_END, ec->cfp->self, 0, 0, 0, 0, Qnil);
             break;
         }
     }
@@ -2879,7 +2881,8 @@ vm_exec_handle_exception(rb_execution_context_t *ec, enum ruby_tag_type state, V
                 EXEC_EVENT_HOOK_AND_POP_FRAME(ec, RUBY_EVENT_C_RETURN, ec->cfp->self,
                                               rb_vm_frame_method_entry(ec->cfp)->def->original_id,
                                               rb_vm_frame_method_entry(ec->cfp)->called_id,
-                                              rb_vm_frame_method_entry(ec->cfp)->owner, Qnil);
+                                              rb_vm_frame_method_entry(ec->cfp)->owner,
+                                              rb_vm_frame_method_entry(ec->cfp)->def->box, Qnil);
                 RUBY_DTRACE_CMETHOD_RETURN_HOOK(ec,
                                                 rb_vm_frame_method_entry(ec->cfp)->owner,
                                                 rb_vm_frame_method_entry(ec->cfp)->def->original_id);
@@ -3093,7 +3096,7 @@ rb_iseq_eval_main(const rb_iseq_t *iseq)
 }
 
 int
-rb_vm_control_frame_id_and_class(const rb_control_frame_t *cfp, ID *idp, ID *called_idp, VALUE *klassp)
+rb_vm_control_frame_id_and_class(const rb_control_frame_t *cfp, ID *idp, ID *called_idp, VALUE *klassp, const rb_box_t **boxp)
 {
     const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
 
@@ -3101,6 +3104,7 @@ rb_vm_control_frame_id_and_class(const rb_control_frame_t *cfp, ID *idp, ID *cal
         if (idp) *idp = me->def->original_id;
         if (called_idp) *called_idp = me->called_id;
         if (klassp) *klassp = me->owner;
+        if (boxp) *boxp = me->def->box;
         return TRUE;
     }
     else {
@@ -3109,15 +3113,15 @@ rb_vm_control_frame_id_and_class(const rb_control_frame_t *cfp, ID *idp, ID *cal
 }
 
 int
-rb_ec_frame_method_id_and_class(const rb_execution_context_t *ec, ID *idp, ID *called_idp, VALUE *klassp)
+rb_ec_frame_method_id_and_class(const rb_execution_context_t *ec, ID *idp, ID *called_idp, VALUE *klassp, const rb_box_t **boxp)
 {
-    return rb_vm_control_frame_id_and_class(ec->cfp, idp, called_idp, klassp);
+    return rb_vm_control_frame_id_and_class(ec->cfp, idp, called_idp, klassp, boxp);
 }
 
 int
 rb_frame_method_id_and_class(ID *idp, VALUE *klassp)
 {
-    return rb_ec_frame_method_id_and_class(GET_EC(), idp, 0, klassp);
+    return rb_ec_frame_method_id_and_class(GET_EC(), idp, 0, klassp, NULL);
 }
 
 VALUE

@@ -842,7 +842,7 @@ call_trace_func(rb_event_flag_t event, VALUE proc, VALUE self, ID id, VALUE klas
     get_path_and_lineno(ec, ec->cfp, event, &filename, &line);
 
     if (!klass) {
-        rb_ec_frame_method_id_and_class(ec, &id, 0, &klass);
+        rb_ec_frame_method_id_and_class(ec, &id, 0, &klass, NULL);
     }
 
     if (klass) {
@@ -1012,7 +1012,7 @@ fill_id_and_klass(rb_trace_arg_t *trace_arg)
 {
     if (!trace_arg->klass_solved) {
         if (!trace_arg->klass) {
-            rb_vm_control_frame_id_and_class(trace_arg->cfp, &trace_arg->id, &trace_arg->called_id, &trace_arg->klass);
+            rb_vm_control_frame_id_and_class(trace_arg->cfp, &trace_arg->id, &trace_arg->called_id, &trace_arg->klass, &trace_arg->bound_box);
         }
 
         if (trace_arg->klass) {

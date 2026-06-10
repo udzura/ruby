@@ -602,7 +602,7 @@ setup_exception(rb_execution_context_t *ec, enum ruby_tag_type tag, volatile VAL
 
     if (tag != TAG_FATAL) {
         RUBY_DTRACE_HOOK(RAISE, rb_obj_classname(ec->errinfo));
-        EXEC_EVENT_HOOK(ec, RUBY_EVENT_RAISE, ec->cfp->self, 0, 0, 0, mesg);
+        EXEC_EVENT_HOOK(ec, RUBY_EVENT_RAISE, ec->cfp->self, 0, 0, 0, 0, mesg);
     }
     return;
 
@@ -1000,7 +1000,7 @@ rb_raise_jump(VALUE mesg, VALUE cause)
     ID mid = me->called_id;
 
     rb_vm_pop_frame(ec);
-    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, self, me->def->original_id, mid, klass, Qnil);
+    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, self, me->def->original_id, mid, klass, me->def->box, Qnil);
 
     rb_longjmp(ec, TAG_RAISE, mesg, cause);
 }

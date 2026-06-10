@@ -693,7 +693,7 @@ thread_start_func_2(rb_thread_t *th, VALUE *stack_start)
     EC_PUSH_TAG(th->ec);
 
     if ((state = EC_EXEC_TAG()) == TAG_NONE) {
-        EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_THREAD_BEGIN, th->self, 0, 0, 0, Qundef);
+        EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_THREAD_BEGIN, th->self, 0, 0, 0, 0, Qundef);
 
         result = thread_do_start(th);
     }
@@ -705,7 +705,7 @@ thread_start_func_2(rb_thread_t *th, VALUE *stack_start)
 
     if (!event_thread_end_hooked) {
         event_thread_end_hooked = 1;
-        EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_THREAD_END, th->self, 0, 0, 0, Qundef);
+        EXEC_EVENT_HOOK(th->ec, RUBY_EVENT_THREAD_END, th->self, 0, 0, 0, 0, Qundef);
     }
 
     if (state == TAG_NONE) {
@@ -2715,7 +2715,7 @@ rb_threadptr_execute_interrupts(rb_thread_t *th, int blocking_timing)
 
             VM_ASSERT(th->ec->cfp);
             EXEC_EVENT_HOOK(th->ec, RUBY_INTERNAL_EVENT_SWITCH, th->ec->cfp->self,
-                            0, 0, 0, Qundef);
+                            0, 0, 0, 0, Qundef);
 
             rb_thread_schedule_limits(limits_us);
         }

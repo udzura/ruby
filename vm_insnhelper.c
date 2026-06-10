@@ -3799,7 +3799,7 @@ vm_call_cfunc_with_frame_(rb_execution_context_t *ec, rb_control_frame_t *reg_cf
     VM_ASSERT(reg_cfp == ec->cfp);
 
     RUBY_DTRACE_CMETHOD_ENTRY_HOOK(ec, me->owner, me->def->original_id);
-    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_CALL, recv, me->def->original_id, vm_ci_mid(ci), me->owner, Qundef);
+    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_CALL, recv, me->def->original_id, vm_ci_mid(ci), me->owner, me->def->box, Qundef);
 
     vm_push_frame(ec, NULL, frame_type, recv,
                   block_handler, (VALUE)me,
@@ -3817,7 +3817,7 @@ vm_call_cfunc_with_frame_(rb_execution_context_t *ec, rb_control_frame_t *reg_cf
 
     VM_ASSERT(ec->cfp->sp == stack_bottom);
 
-    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, recv, me->def->original_id, vm_ci_mid(ci), me->owner, val);
+    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, recv, me->def->original_id, vm_ci_mid(ci), me->owner, me->def->box, val);
     RUBY_DTRACE_CMETHOD_RETURN_HOOK(ec, me->owner, me->def->original_id);
 
     return val;
@@ -4718,10 +4718,10 @@ NOINLINE(static VALUE vm_call_optimized(rb_execution_context_t *ec, rb_control_f
 #define VM_CALL_METHOD_ATTR(var, func, nohook) \
     if (UNLIKELY(ruby_vm_c_events_enabled > 0)) { \
         EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_CALL, calling->recv, vm_cc_cme(cc)->def->original_id, \
-                        vm_ci_mid(ci), vm_cc_cme(cc)->owner, Qundef); \
+                        vm_ci_mid(ci), vm_cc_cme(cc)->owner, vm_cc_cme(cc)->def->box, Qundef); \
         var = func; \
         EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, calling->recv, vm_cc_cme(cc)->def->original_id, \
-                        vm_ci_mid(ci), vm_cc_cme(cc)->owner, (var)); \
+                        vm_ci_mid(ci), vm_cc_cme(cc)->owner, vm_cc_cme(cc)->def->box, (var)); \
     } \
     else { \
         nohook; \
@@ -7137,7 +7137,7 @@ vm_trace_hook(rb_execution_context_t *ec, rb_control_frame_t *reg_cfp, const VAL
         /* increment PC because source line is calculated with PC-1 */
         reg_cfp->pc++;
         vm_dtrace(event, ec);
-        rb_exec_event_hook_orig(ec, global_hooks, event, self, 0, 0, 0 , val, 0);
+        rb_exec_event_hook_orig(ec, global_hooks, event, self, 0, 0, 0, 0, val, 0);
         reg_cfp->pc--;
     }
 
@@ -7146,7 +7146,7 @@ vm_trace_hook(rb_execution_context_t *ec, rb_control_frame_t *reg_cfp, const VAL
         if (event & local_hooks->events) {
             /* increment PC because source line is calculated with PC-1 */
             reg_cfp->pc++;
-            rb_exec_event_hook_orig(ec, local_hooks, event, self, 0, 0, 0 , val, 0);
+            rb_exec_event_hook_orig(ec, local_hooks, event, self, 0, 0, 0, 0, val, 0);
             reg_cfp->pc--;
         }
     }

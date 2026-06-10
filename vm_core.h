@@ -1961,7 +1961,7 @@ RUBY_SYMBOL_EXPORT_END
 VALUE rb_iseq_pathobj_new(VALUE path, VALUE realpath);
 void rb_iseq_pathobj_set(const rb_iseq_t *iseq, VALUE path, VALUE realpath);
 
-int rb_ec_frame_method_id_and_class(const rb_execution_context_t *ec, ID *idp, ID *called_idp, VALUE *klassp);
+int rb_ec_frame_method_id_and_class(const rb_execution_context_t *ec, ID *idp, ID *called_idp, VALUE *klassp, const rb_box_t **boxp);
 void rb_ec_setup_exception(const rb_execution_context_t *ec, VALUE mesg, VALUE cause);
 
 VALUE rb_vm_invoke_proc(rb_execution_context_t *ec, rb_proc_t *proc, int argc, const VALUE *argv, int kw_splat, VALUE block_handler);
@@ -2015,7 +2015,7 @@ void ruby_thread_init_stack(rb_thread_t *th, void *local_in_parent_frame);
 void rb_thread_malloc_stack_set(rb_thread_t *th, void *stack, size_t stack_size);
 rb_thread_t * ruby_thread_from_native(void);
 int ruby_thread_set_native(rb_thread_t *th);
-int rb_vm_control_frame_id_and_class(const rb_control_frame_t *cfp, ID *idp, ID *called_idp, VALUE *klassp);
+int rb_vm_control_frame_id_and_class(const rb_control_frame_t *cfp, ID *idp, ID *called_idp, VALUE *klassp, const rb_box_t **boxp);
 void rb_vm_rewind_cfp(rb_execution_context_t *ec, rb_control_frame_t *cfp);
 void rb_vm_env_write(const VALUE *ep, int index, VALUE v);
 VALUE rb_vm_bh_to_procval(const rb_execution_context_t *ec, VALUE block_handler);
@@ -2295,6 +2295,7 @@ struct rb_trace_arg_struct {
     ID id;
     ID called_id;
     VALUE klass;
+    const rb_box_t *bound_box;
     VALUE data;
 
     int klass_solved;
@@ -2313,18 +2314,18 @@ unsigned int rb_hook_list_count(rb_hook_list_t *list);
 
 void rb_exec_event_hooks(struct rb_trace_arg_struct *trace_arg, rb_hook_list_t *hooks, int pop_p);
 
-#define EXEC_EVENT_HOOK_ORIG(ec_, hooks_, flag_, self_, id_, called_id_, klass_, data_, pop_p_) do { \
+#define EXEC_EVENT_HOOK_ORIG(ec_, hooks_, flag_, self_, id_, called_id_, klass_, bound_box_, data_, pop_p_) do { \
     const rb_event_flag_t flag_arg_ = (flag_); \
     rb_hook_list_t *hooks_arg_ = (hooks_); \
     if (UNLIKELY((hooks_arg_)->events & (flag_arg_))) { \
         /* defer evaluating the other arguments */ \
-        rb_exec_event_hook_orig(ec_, hooks_arg_, flag_arg_, self_, id_, called_id_, klass_, data_, pop_p_); \
+        rb_exec_event_hook_orig(ec_, hooks_arg_, flag_arg_, self_, id_, called_id_, klass_, bound_box_, data_, pop_p_); \
     } \
 } while (0)
 
 static inline void
 rb_exec_event_hook_orig(rb_execution_context_t *ec, rb_hook_list_t *hooks, rb_event_flag_t flag,
-                        VALUE self, ID id, ID called_id, VALUE klass, VALUE data, int pop_p)
+                        VALUE self, ID id, ID called_id, VALUE klass, const rb_box_t *bound_box, VALUE data, int pop_p)
 {
     struct rb_trace_arg_struct trace_arg;
 
@@ -2337,6 +2338,7 @@ rb_exec_event_hook_orig(rb_execution_context_t *ec, rb_hook_list_t *hooks, rb_ev
     trace_arg.id = id;
     trace_arg.called_id = called_id;
     trace_arg.klass = klass;
+    trace_arg.bound_box = bound_box;
     trace_arg.data = data;
     trace_arg.path = Qundef;
     trace_arg.klass_solved = 0;
@@ -2379,16 +2381,16 @@ rb_ec_hooks(const rb_execution_context_t *ec, rb_event_flag_t event)
     }
 }
 
-#define EXEC_EVENT_HOOK(ec_, flag_, self_, id_, called_id_, klass_, data_) \
-  EXEC_EVENT_HOOK_ORIG(ec_, rb_ec_hooks(ec_, flag_), flag_, self_, id_, called_id_, klass_, data_, 0)
+#define EXEC_EVENT_HOOK(ec_, flag_, self_, id_, called_id_, klass_, bound_box_, data_) \
+  EXEC_EVENT_HOOK_ORIG(ec_, rb_ec_hooks(ec_, flag_), flag_, self_, id_, called_id_, klass_, bound_box_, data_, 0)
 
-#define EXEC_EVENT_HOOK_AND_POP_FRAME(ec_, flag_, self_, id_, called_id_, klass_, data_) \
-  EXEC_EVENT_HOOK_ORIG(ec_, rb_ec_hooks(ec_, flag_), flag_, self_, id_, called_id_, klass_, data_, 1)
+#define EXEC_EVENT_HOOK_AND_POP_FRAME(ec_, flag_, self_, id_, called_id_, klass_, bound_box_, data_) \
+  EXEC_EVENT_HOOK_ORIG(ec_, rb_ec_hooks(ec_, flag_), flag_, self_, id_, called_id_, klass_, bound_box_, data_, 1)
 
 static inline void
 rb_exec_event_hook_script_compiled(rb_execution_context_t *ec, const rb_iseq_t *iseq, VALUE eval_script)
 {
-    EXEC_EVENT_HOOK(ec, RUBY_EVENT_SCRIPT_COMPILED, ec->cfp->self, 0, 0, 0,
+    EXEC_EVENT_HOOK(ec, RUBY_EVENT_SCRIPT_COMPILED, ec->cfp->self, 0, 0, 0, 0,
                     NIL_P(eval_script) ? (VALUE)iseq :
                     rb_ary_new_from_args(2, eval_script, (VALUE)iseq));
 }
