@@ -181,7 +181,7 @@ rb_full_cfunc_return(rb_execution_context_t *ec, VALUE return_value)
     // Pop the C func's frame and fire the c_return TracePoint event
     // Note that this is the same order as vm_call_cfunc_with_frame().
     rb_vm_pop_frame(ec);
-    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, cfp->self, me->def->original_id, me->called_id, me->owner, me->def->box, return_value);
+    EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, cfp->self, me->def->original_id, me->called_id, me->owner, return_value);
     // Note, this deviates from the interpreter in that users need to enable
     // a c_return TracePoint for this DTrace hook to work. A reasonable change
     // since the Ruby return event works this way as well.

@@ -326,6 +326,7 @@ VALUE rb_vm_call_cfunc(VALUE recv, VALUE (*func)(VALUE), VALUE arg, VALUE block_
 VALUE rb_vm_call_cfunc_in_box(VALUE recv, VALUE (*func)(VALUE, VALUE), VALUE arg1, VALUE arg2, VALUE filename, const rb_box_t *box);
 void rb_vm_frame_flag_set_box_require(const rb_execution_context_t *ec);
 const rb_box_t *rb_vm_current_box(const rb_execution_context_t *ec);
+const rb_box_t *rb_vm_box_on_cfp(const rb_execution_context_t *ec, const rb_control_frame_t *cfp);
 const rb_box_t *rb_vm_caller_box(const rb_execution_context_t *ec);
 const rb_box_t *rb_vm_loading_box(const rb_execution_context_t *ec);
 void rb_vm_set_progname(VALUE filename);

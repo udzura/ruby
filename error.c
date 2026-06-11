@@ -1920,9 +1920,9 @@ rb_get_backtrace(VALUE exc)
         rb_execution_context_t *ec = GET_EC();
         if (NIL_P(exc))
             return Qnil;
-        EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_CALL, exc, mid, mid, klass, 0, Qundef);
+        EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_CALL, exc, mid, mid, klass, Qundef);
         info = exc_backtrace(exc);
-        EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, exc, mid, mid, klass, 0, info);
+        EXEC_EVENT_HOOK(ec, RUBY_EVENT_C_RETURN, exc, mid, mid, klass, info);
     }
     else {
         info = rb_funcallv(exc, mid, 0, 0);

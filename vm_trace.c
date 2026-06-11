@@ -843,7 +843,7 @@ call_trace_func(rb_event_flag_t event, VALUE proc, VALUE self, ID id, VALUE klas
     get_path_and_lineno(ec, ec->cfp, event, &filename, &line);
 
     if (!klass) {
-        rb_ec_frame_method_id_and_class(ec, &id, 0, &klass, NULL);
+        rb_ec_frame_method_id_and_class(ec, &id, 0, &klass);
     }
 
     if (klass) {
@@ -1013,7 +1013,7 @@ fill_id_and_klass(rb_trace_arg_t *trace_arg)
 {
     if (!trace_arg->klass_solved) {
         if (!trace_arg->klass) {
-            rb_vm_control_frame_id_and_class(trace_arg->cfp, &trace_arg->id, &trace_arg->called_id, &trace_arg->klass, &trace_arg->bound_box);
+            rb_vm_control_frame_id_and_class(trace_arg->cfp, &trace_arg->id, &trace_arg->called_id, &trace_arg->klass);
         }
 
         if (trace_arg->klass) {
@@ -1097,10 +1097,15 @@ rb_tracearg_defined_class(rb_trace_arg_t *trace_arg)
 VALUE
 rb_tracearg_bound_box(rb_trace_arg_t *trace_arg)
 {
-    fill_id_and_klass(trace_arg);
-    if (trace_arg->bound_box) {
-        return rb_get_box_object(trace_arg->bound_box);
-    }
+    /* Use current_box_on_cfp to resolve the execution box of the frame at the
+     * time of the event.  This covers all event types uniformly:
+     *   - method/block frames  -> method's definition box (via cme->def->box)
+     *   - top-level/class frames -> VM_ENV_BOX (the box that frame runs in)
+     *   - cfunc frames         -> caller's box
+     * trace_arg->cfp is the frame captured at event time, not ec->cfp which
+     * may already point to the hook block's own frame. */
+    const rb_box_t *box = rb_vm_box_on_cfp(trace_arg->ec, trace_arg->cfp);
+    if (box) return rb_get_box_object(box);
     return Qnil;
 }
 
