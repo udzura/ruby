@@ -1216,4 +1216,34 @@ class TestBox < Test::Unit::TestCase
       Module.new.include?(Module.new)
     end;
   end
+
+  def test_tracepoint_bound_box
+    assert_separately([ENV_ENABLE_BOX], __FILE__, __LINE__, "#{<<~"begin;"}\n#{<<~'end;'}", ignore_stderr: true)
+    begin;
+      box = Ruby::Box.new
+      box.eval(<<~'RUBY')
+        class BoxClass
+          def box_method
+            42
+          end
+        end
+      RUBY
+
+      seen = {}
+      obj = box::BoxClass.new
+      TracePoint.new(:call, :return) {|tp|
+        seen[tp.event] = tp.bound_box if tp.method_id == :box_method
+      }.enable { obj.box_method }
+
+      assert_equal box, seen[:call]
+      assert_equal box, seen[:return]
+
+      def (obj2 = Object.new).main_method; end
+      main_box = nil
+      TracePoint.new(:call) {|tp|
+        main_box = tp.bound_box if tp.method_id == :main_method
+      }.enable { obj2.main_method }
+      assert_not_equal box, main_box
+    end;
+  end
 end

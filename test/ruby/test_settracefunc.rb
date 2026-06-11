@@ -803,6 +803,19 @@ CODE
     assert_raise(RuntimeError){tp_store.self}
     assert_raise(RuntimeError){tp_store.return_value}
     assert_raise(RuntimeError){tp_store.raised_exception}
+    assert_raise(RuntimeError){tp_store.bound_box}
+  end
+
+  def bound_box_target
+  end
+
+  def test_tracepoint_bound_box_without_box
+    boxes = []
+    TracePoint.new(:call, :return, :c_call, :c_return){|tp|
+      next if !target_thread?
+      boxes << tp.bound_box
+    }.enable{ [].size; bound_box_target }
+    assert_equal [nil], boxes.uniq
   end
 
   def foo
