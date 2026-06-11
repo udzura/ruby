@@ -3215,6 +3215,9 @@ const rb_box_t *
 rb_vm_box_on_cfp(const rb_execution_context_t *ec, const rb_control_frame_t *cfp)
 {
     if (!rb_box_available()) return NULL;
+    /* For C method frames, return the method's own definition box (me->def->box)
+     * rather than the caller's box.  This makes box::CMethod.call report the box
+     * where the C extension was loaded, regardless of who called it. */
     return current_box_on_cfp(ec, cfp);
 }
 

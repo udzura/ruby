@@ -1211,7 +1211,7 @@ rb_method_definition_create(rb_method_type_t type, ID mid)
     def->type = type;
     def->original_id = mid;
     def->method_serial = (uintptr_t)RUBY_ATOMIC_FETCH_ADD(method_serial, 1);
-    def->box = rb_current_box();
+    def->box = rb_loading_box();
     return def;
 }
 

@@ -1097,13 +1097,34 @@ rb_tracearg_defined_class(rb_trace_arg_t *trace_arg)
 VALUE
 rb_tracearg_bound_box(rb_trace_arg_t *trace_arg)
 {
-    /* Use current_box_on_cfp to resolve the execution box of the frame at the
-     * time of the event.  This covers all event types uniformly:
-     *   - method/block frames  -> method's definition box (via cme->def->box)
-     *   - top-level/class frames -> VM_ENV_BOX (the box that frame runs in)
-     *   - cfunc frames         -> caller's box
-     * trace_arg->cfp is the frame captured at event time, not ec->cfp which
-     * may already point to the hook block's own frame. */
+    /* For C method events the CFUNC frame is not on the stack at event time
+     * (c_call fires before vm_push_frame; c_return fires after vm_pop_frame),
+     * so trace_arg->cfp is the caller's frame.  Use the method entry looked up
+     * from klass+id — the same approach as rb_tracearg_parameters — to get
+     * the box where the C method was defined (me->def->box). */
+    if (trace_arg->event & (RUBY_EVENT_C_CALL | RUBY_EVENT_C_RETURN)) {
+        fill_id_and_klass(trace_arg);
+        if (trace_arg->klass && (trace_arg->called_id || trace_arg->id)) {
+            VALUE iclass = Qnil;
+            const rb_method_entry_t *me =
+                rb_method_entry_without_refinements(trace_arg->klass, trace_arg->called_id, &iclass);
+            if (!me)
+                me = rb_method_entry_without_refinements(trace_arg->klass, trace_arg->id, &iclass);
+            if (me && me->def && me->def->box)
+                return rb_get_box_object(me->def->box);
+        }
+        return Qnil;
+    }
+
+    /* class/end frames have no associated cme, so return nil consistently
+     * with other no-cme events (thread_begin, thread_end, fiber_switch, etc.). */
+    if (trace_arg->event & (RUBY_EVENT_CLASS | RUBY_EVENT_END)) {
+        return Qnil;
+    }
+
+    /* For all other events, resolve the execution box of the frame captured
+     * at event time.  trace_arg->cfp is the frame at the time of the event,
+     * not ec->cfp which may already point to the hook block's own frame. */
     const rb_box_t *box = rb_vm_box_on_cfp(trace_arg->ec, trace_arg->cfp);
     if (box) return rb_get_box_object(box);
     return Qnil;
